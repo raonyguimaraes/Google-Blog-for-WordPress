@@ -61,6 +61,7 @@ class GFW_Post extends SM2WP_Post {
     protected $_images = array();
     protected $_video = null;
     protected $_article = null;
+    protected $_title = null;
     protected $_album = null;
 
     protected $_parent = null;
@@ -97,12 +98,14 @@ class GFW_Post extends SM2WP_Post {
         $this->_images[] = array('thumb' => $thumbnail, 'full' => $image, 'url' => $url);
     }
 
-    public function add_video($video) {
+    public function add_video($video, $title=null) {
         $this->_video = $video;
+        $this->_title = $title;
     }
 
     public function add_article($url, $title, $annotation, $thumbnail=null) {
         $this->_article = array($url, strip_tags($title), $annotation, $thumbnail);
+        $this->_title = $title;   
     }
 
     public function add_album($url, $title) {
@@ -121,14 +124,18 @@ class GFW_Post extends SM2WP_Post {
 
     public function get_title() {
         $t = '';
-        if ($this->_has_first_line_title()) { // Title First Line
+        if($this->_title){
+            $t = $this->_title;
+        }
+        elseif ($this->_has_first_line_title()) { // Title First Line
             if (trim($this->_annotation)) {
               $t = rtrim(strip_tags(substr($this->_annotation, 0, strpos($this->_annotation, '<br />'))), '.');
             }
             if (!$t) {
               $t = rtrim(strip_tags(substr($this->_content, 0, strpos($this->_content, '<br />'))), '.');
             }
-        } else {
+        }
+        else {
             $c = $this->_annotation.$this->_content;
             $t = rtrim(strip_tags(substr($c, 0, strpos($c, '.'))), '.');
             if (!$t) {
@@ -508,6 +515,8 @@ class SM2WP_GooglePlus_Library extends SM2WP_Network {
                             }
                         break;
                         case 'video':
+                            $title = $a->displayName;
+
                             if (substr(@strtolower($a->displayName), -4, 4) == '.mov')
                             {
                                 $url = @$a->url;
@@ -519,15 +528,16 @@ class SM2WP_GooglePlus_Library extends SM2WP_Network {
                             elseif (strstr($a->url, 'vimeo.com')) {
                                 $video = str_replace('www.vimeo.com', 'player.vimeo.com/video', $a->url);
                                 $video = str_replace('http://vimeo.com', 'http://player.vimeo.com/video', $a->url);
-                                $p->add_video($video);
+                                $p->add_video($video, $title);
                             }
                             elseif (@$a->embed->url && @strstr(@$a->embed->url, 'youtube.com')) {
                                 $video = str_replace('/v/', '/embed/', $a->embed->url);
-                                $p->add_video($video);
+
+                                $p->add_video($video, $title);
                             }
                             else {
                                 $video = str_replace('watch?v=', 'embed/', str_replace('&autoplay=1','', $a->url));
-                                $p->add_video($video);
+                                $p->add_video($video, $title);
                             }
 
                         break;
